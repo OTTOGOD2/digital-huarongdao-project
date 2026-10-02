@@ -25,7 +25,7 @@ if errorlevel 1 exit /b 1
 
 echo [4/4] Creating standalone executable with jpackage...
 if exist dist rmdir /s /q dist
-jpackage --type app-image --name DigitalHuarongdao --input build --main-jar DigitalHuarongdao.jar --main-class DigitalHuarongdao --dest dist
+jpackage --type app-image --name DigitalHuarongdao --input build --main-jar DigitalHuarongdao.jar --main-class DigitalHuarongdao --icon assets\app.ico --dest dist
 if errorlevel 1 exit /b 1
 
 echo.

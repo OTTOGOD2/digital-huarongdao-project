@@ -37,7 +37,7 @@ java -cp out PuzzleSolverTest
 
 ## 打包
 
-执行 `build.bat`：编译 → 跑测试 → 打 jar → `jpackage` 生成自带运行时的独立程序：
+执行 `build.bat`：编译 → 跑测试 → 打 jar → `jpackage` 生成自带运行时的独立程序（应用图标见 `assets/app.ico`）：
 
 ```
 dist\DigitalHuarongdao\DigitalHuarongdao.exe
@@ -53,6 +53,6 @@ dist\DigitalHuarongdao\DigitalHuarongdao.exe
 - `Z` 撤销上一步（局面与步数同步回退），`R` 重新开始。
 - 处于正确位置的数字块带绿色描边，方便观察进度。
 - `H` 提示一步（黄色高亮），"自动演示"按钮完整通关，`Esc` 停止演示。
-- 提示与演示使用加权 IDA* 快速求解，路径不保证最优；另提供严格最优的 `PuzzleSolver.solve`（供测试与分析）。两者目前支持到 4x4。
+- 提示与演示使用加权 IDA* 快速求解，路径不保证最优；另提供严格最优的 `PuzzleSolver.solve`（供测试与分析）。两者目前支持到 4x4——实测 5x5 随机局面即使快速模式也会超出节点预算，故不放开。
 - 本局一旦使用提示或演示，成绩不计入纪录。
 - 每个难度分别记录最少步数与最短用时，通关后自动保存到用户目录的 `.digital-huarongdao-records.properties`。
