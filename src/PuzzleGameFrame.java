@@ -44,8 +44,10 @@ public class PuzzleGameFrame extends JFrame {
     private static final Color HINT_TILE = new Color(255, 214, 10);
     private static final String FONT_FAMILY = "Microsoft YaHei UI";
     private static final String DEFAULT_HINT = "点击 / 方向键移动 · Z 撤销 · H 提示 · R 重开 · Esc 停止演示";
-    private static final int DEMO_INTERVAL_MS = 130;
     private static final long SOLVE_NODE_BUDGET = 20_000_000L;
+    private static final int DEMO_SLOW_MS = 130;
+    private static final int DEMO_FAST_MS = 20;
+    private static final int DEMO_TOTAL_TARGET_MS = 15000;
 
     private final RecordStore recordStore = new RecordStore();
     private PuzzleBoard board;
@@ -139,7 +141,7 @@ public class PuzzleGameFrame extends JFrame {
         });
         clock.start();
 
-        demoTimer = new Timer(DEMO_INTERVAL_MS, e -> demoTick());
+        demoTimer = new Timer(DEMO_SLOW_MS, e -> demoTick());
         statusTimer = new Timer(2500, e -> hintLabel.setText(DEFAULT_HINT));
         statusTimer.setRepeats(false);
 
@@ -286,13 +288,9 @@ public class PuzzleGameFrame extends JFrame {
         boardPanel.repaint();
     }
 
-    /** H：后台求最优解，把第一步的格子高亮提示。 */
+    /** H：后台求解，把第一步的格子高亮提示。 */
     private void requestHint() {
         if (inputLocked()) {
-            return;
-        }
-        if (board.getSize() > 4) {
-            setStatus("提示目前支持到 4 x 4");
             return;
         }
         solving = true;
@@ -313,17 +311,13 @@ public class PuzzleGameFrame extends JFrame {
         });
     }
 
-    /** 自动演示按钮：再点一次或按 Esc 停止。 */
+    /** 自动演示按钮：再点一次或按 Esc（或点击棋盘）停止。 */
     private void toggleAutoSolve() {
         if (demoRunning) {
             stopDemo();
             return;
         }
         if (!playing || won || solving) {
-            return;
-        }
-        if (board.getSize() > 4) {
-            setStatus("求解器目前支持到 4 x 4");
             return;
         }
         solving = true;
@@ -343,15 +337,20 @@ public class PuzzleGameFrame extends JFrame {
             solution = result;
             demoIndex = 0;
             demoRunning = true;
+            // 长解自动加速：整个演示控制在 DEMO_TOTAL_TARGET_MS 上下
+            demoTimer.setDelay(Math.max(DEMO_FAST_MS,
+                    Math.min(DEMO_SLOW_MS, DEMO_TOTAL_TARGET_MS / result.length)));
             demoButton.setText("停止演示");
             demoTimer.start();
         });
     }
 
-    /** 在后台线程用快速模式求解（毫秒级），结果回到 EDT 处理。 */
+    /** 在后台线程求解（小棋盘加权 IDA*，大棋盘分层归位），结果回到 EDT 处理。 */
     private void startSolverWorker(PuzzleBoard snapshot, int generation, java.util.function.Consumer<int[]> callback) {
         Thread worker = new Thread(() -> {
-            int[] result = PuzzleSolver.solveFast(snapshot, SOLVE_NODE_BUDGET);
+            int[] result = snapshot.getSize() <= 4
+                    ? PuzzleSolver.solveFast(snapshot, SOLVE_NODE_BUDGET)
+                    : LayeredSolver.solve(snapshot);
             SwingUtilities.invokeLater(() -> callback.accept(result));
         });
         worker.setDaemon(true);
@@ -371,6 +370,7 @@ public class PuzzleGameFrame extends JFrame {
         int toCol = board.getEmptyCol();
         if (board.moveTile(row, col)) {
             demoIndex++;
+            demoButton.setText("停止演示 " + demoIndex + "/" + solution.length);
             registerMove(row, col, toRow, toCol);
         } else {
             stopDemo();  // 局面与解意外脱同步，安全起见停止
@@ -446,6 +446,10 @@ public class PuzzleGameFrame extends JFrame {
                 public void mouseClicked(MouseEvent e) {
                     if (won) {
                         startNewGame();
+                        return;
+                    }
+                    if (demoRunning) {
+                        stopDemo();
                         return;
                     }
                     int[] cell = cellAt(e.getPoint());

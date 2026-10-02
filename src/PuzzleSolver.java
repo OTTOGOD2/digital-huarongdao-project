@@ -27,33 +27,43 @@ public final class PuzzleSolver {
      *         无解或搜索节点超出 maxNodes 时返回 null。
      */
     public static int[] solve(PuzzleBoard board, long maxNodes) {
-        return solveInternal(board, maxNodes, 1);
+        return solveCells(cellsOf(board), board.getSize(), maxNodes, 1);
     }
 
     /**
      * 快速求解：加权启发（权重 {@value FAST_WEIGHT}），解可能非最优但通常快几个数量级。
      */
     public static int[] solveFast(PuzzleBoard board, long maxNodes) {
-        return solveInternal(board, maxNodes, FAST_WEIGHT);
+        return solveCells(cellsOf(board), board.getSize(), maxNodes, FAST_WEIGHT);
     }
 
-    private static int[] solveInternal(PuzzleBoard board, long maxNodes, int weight) {
-        int size = board.getSize();
-        int[] cells = new int[size * size];
-        int blank = 0;
-        for (int r = 0; r < size; r++) {
-            for (int c = 0; c < size; c++) {
-                int value = board.getTile(r, c);
-                cells[r * size + c] = value;
-                if (value == 0) {
-                    blank = r * size + c;
-                }
-            }
-        }
+    /**
+     * 直接求解格子数组（row-major，0 为空格，目标 1..n²-1 后接 0），
+     * 供分层求解器把剩余 4x4 子局面的局部编号交进来复用。
+     */
+    static int[] solveCells(int[] cells, int size, long maxNodes, int weight) {
         if (!isSolvable(cells, size)) {
             return null;
         }
+        int blank = 0;
+        for (int i = 0; i < cells.length; i++) {
+            if (cells[i] == 0) {
+                blank = i;
+                break;
+            }
+        }
         return new Solver(cells, size, blank, maxNodes, weight).run();
+    }
+
+    private static int[] cellsOf(PuzzleBoard board) {
+        int size = board.getSize();
+        int[] cells = new int[size * size];
+        for (int r = 0; r < size; r++) {
+            for (int c = 0; c < size; c++) {
+                cells[r * size + c] = board.getTile(r, c);
+            }
+        }
+        return cells;
     }
 
     /** 逆序奇偶性判定：奇数宽看逆数序，偶数宽再看空格所在行（自底向上数）。 */

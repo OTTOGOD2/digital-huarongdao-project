@@ -14,11 +14,13 @@ java -cp out RecordStoreTest
 if errorlevel 1 exit /b 1
 java -cp out PuzzleSolverTest
 if errorlevel 1 exit /b 1
+java -cp out LayeredSolverTest
+if errorlevel 1 exit /b 1
 
 echo [3/4] Packaging jar (test classes excluded)...
 if exist build rmdir /s /q build
 mkdir build\classes
-javac -encoding UTF-8 -d build\classes src\DigitalHuarongdao.java src\PuzzleBoard.java src\PuzzleGameFrame.java src\PuzzleSolver.java src\RecordStore.java
+javac -encoding UTF-8 -d build\classes src\DigitalHuarongdao.java src\PuzzleBoard.java src\PuzzleGameFrame.java src\PuzzleSolver.java src\LayeredSolver.java src\RecordStore.java
 if errorlevel 1 exit /b 1
 jar cfe build\DigitalHuarongdao.jar DigitalHuarongdao -C build\classes .
 if errorlevel 1 exit /b 1
