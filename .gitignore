@@ -4,6 +4,10 @@ build/
 dist/
 *.class
 
+# 本地临时文件
+*.tmp
+.git-msg.txt
+
 # IDE
 .idea/
 *.iml
