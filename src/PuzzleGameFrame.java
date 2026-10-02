@@ -323,6 +323,7 @@ public class PuzzleGameFrame extends JFrame {
             }
             usedSolver = true;
             hintPos = result[0];
+            setStatus("已提示一步：本局成绩将不计入纪录");
             boardPanel.repaint();
         });
     }
@@ -353,6 +354,7 @@ public class PuzzleGameFrame extends JFrame {
             solution = result;
             demoIndex = 0;
             demoRunning = true;
+            setStatus("演示中：本局成绩将不计入纪录");
             // 长解自动加速：整个演示控制在 DEMO_TOTAL_TARGET_MS 上下
             demoTimer.setDelay(Math.max(DEMO_FAST_MS,
                     Math.min(DEMO_SLOW_MS, DEMO_TOTAL_TARGET_MS / result.length)));
