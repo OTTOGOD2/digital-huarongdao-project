@@ -34,14 +34,24 @@ import javax.swing.Timer;
  * 支持撤销、最佳成绩、滑动动画与 IDA* 求解器（提示 / 自动演示）。
  */
 public class PuzzleGameFrame extends JFrame {
-    private static final Color BG = new Color(18, 24, 38);
-    private static final Color PANEL = new Color(28, 36, 54);
-    private static final Color TILE = new Color(86, 171, 228);
-    private static final Color TILE_ACCENT = new Color(120, 198, 247);
-    private static final Color TEXT = new Color(240, 246, 255);
-    private static final Color DIM = new Color(170, 186, 210);
-    private static final Color SOLVED = new Color(72, 180, 132);
-    private static final Color HINT_TILE = new Color(255, 214, 10);
+    private static final Color BG = new Color(250, 248, 239);           // 窗口底：暖米白
+    private static final Color BOARD = new Color(187, 173, 160);        // 棋盘垫底
+    private static final Color EMPTY = new Color(204, 192, 179);        // 空格
+    private static final Color TILE_LOW = new Color(238, 228, 218);     // 小数字块：米色
+    private static final Color TILE_SAND = new Color(240, 213, 168);    // 中低段：暖沙
+    private static final Color TILE_MID = new Color(242, 177, 121);     // 中段：橙
+    private static final Color TILE_HIGH = new Color(246, 94, 59);      // 大数字块：橙红
+    private static final Color WIN_TILE = new Color(244, 194, 107);     // 胜利时块色：暖金
+    private static final Color CORRECT_EDGE = new Color(109, 181, 107); // 已归位描边
+    private static final Color HINT_EDGE = new Color(255, 122, 40);     // 提示描边
+    private static final Color TEXT_DARK = new Color(119, 110, 101);    // 浅色块上的深棕字
+    private static final Color TEXT_LIGHT = new Color(252, 250, 246);   // 深色块上的字
+    private static final Color TITLE = new Color(107, 93, 82);          // 标题深棕
+    private static final Color DIM = new Color(154, 139, 125);          // 辅助文字
+    private static final Color BUTTON = new Color(143, 122, 102);       // 按钮
+    private static final Color OVERLAY = new Color(93, 81, 70, 190);    // 胜利覆盖层
+    private static final Color GOLD = new Color(255, 191, 94);          // 新纪录
+    private static final Color OVERLAY_DIM = new Color(216, 207, 196);  // 覆盖层辅助文字
     private static final String FONT_FAMILY = "Microsoft YaHei UI";
     private static final String DEFAULT_HINT = "点击 / 方向键移动 · Z 撤销 · H 提示 · R 重开 · Esc 停止演示";
     private static final long SOLVE_NODE_BUDGET = 20_000_000L;
@@ -90,15 +100,15 @@ public class PuzzleGameFrame extends JFrame {
         top.setOpaque(false);
 
         JLabel title = new JLabel("数字华容道", SwingConstants.LEFT);
-        title.setForeground(TEXT);
+        title.setForeground(TITLE);
         title.setFont(font(Font.BOLD, 26));
         top.add(title, BorderLayout.WEST);
 
         JPanel stats = new JPanel();
         stats.setOpaque(false);
-        movesLabel = metric("步数 0");
-        timeLabel = metric("用时 00:00");
-        recordLabel = metric("纪录 --");
+        movesLabel = metric("步数");
+        timeLabel = metric("用时");
+        recordLabel = metric("纪录");
         stats.add(movesLabel);
         stats.add(timeLabel);
         stats.add(recordLabel);
@@ -155,22 +165,28 @@ public class PuzzleGameFrame extends JFrame {
         return new Font(FONT_FAMILY, style, size);
     }
 
-    private JLabel metric(String text) {
-        JLabel label = new JLabel(text);
-        label.setOpaque(true);
-        label.setBackground(PANEL);
-        label.setForeground(TEXT);
-        label.setFont(font(Font.BOLD, 14));
-        label.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
-        return label;
+    private JLabel metric(String label) {
+        JLabel label2 = new JLabel(statHtml(label, "--"), SwingConstants.CENTER);
+        label2.setOpaque(true);
+        label2.setBackground(BOARD);
+        label2.setFont(font(Font.PLAIN, 12));
+        label2.setBorder(BorderFactory.createEmptyBorder(6, 14, 8, 14));
+        return label2;
+    }
+
+    /** 顶部统计的两行样式：小标签 + 大数值。 */
+    private static String statHtml(String label, String value) {
+        return "<html><center><font color=#e8ddd0>" + label
+                + "</font><br><b><font color=#fcfaf6 size=4>" + value + "</font></b></center></html>";
     }
 
     private JButton actionButton(String text) {
         JButton button = new JButton(text);
         button.setFont(font(Font.BOLD, 14));
         button.setFocusPainted(false);
-        button.setBackground(new Color(47, 125, 196));
-        button.setForeground(Color.WHITE);
+        button.setBorderPainted(false);
+        button.setBackground(BUTTON);
+        button.setForeground(TEXT_LIGHT);
         return button;
     }
 
@@ -202,14 +218,14 @@ public class PuzzleGameFrame extends JFrame {
     }
 
     private void refreshStats() {
-        movesLabel.setText("步数 " + moves);
-        timeLabel.setText("用时 " + formatTime(elapsedSeconds));
+        movesLabel.setText(statHtml("步数", String.valueOf(moves)));
+        timeLabel.setText(statHtml("用时", formatTime(elapsedSeconds)));
         Integer bestMoves = recordStore.bestMoves(board.getSize());
         Integer bestSeconds = recordStore.bestSeconds(board.getSize());
         if (bestMoves == null || bestSeconds == null) {
-            recordLabel.setText("纪录 --");
+            recordLabel.setText(statHtml("纪录", "--"));
         } else {
-            recordLabel.setText("纪录 " + bestMoves + "步 " + formatTime(bestSeconds));
+            recordLabel.setText(statHtml("纪录", bestMoves + "步 " + formatTime(bestSeconds)));
         }
     }
 
@@ -421,8 +437,7 @@ public class PuzzleGameFrame extends JFrame {
 
     private class BoardPanel extends JPanel {
         private static final int GAP = 10;
-        private static final int BOARD_ARC = 18;
-        private static final int TILE_ARC = 16;
+        private static final int BOARD_ARC = 24;
         private static final int SLIDE_MS = 90;
 
         private Font tileFont;
@@ -438,7 +453,7 @@ public class PuzzleGameFrame extends JFrame {
 
         private BoardPanel() {
             setPreferredSize(new Dimension(460, 460));
-            setBackground(PANEL);
+            setBackground(BG);
             slideTimer = new Timer(15, e -> tickSlide());
             addMouseListener(new MouseAdapter() {
                 @Override
@@ -498,7 +513,7 @@ public class PuzzleGameFrame extends JFrame {
             Rectangle outer = boardRect();
             int cell = cellSize();
 
-            g2.setColor(new Color(22, 28, 44));
+            g2.setColor(BOARD);
             g2.fillRoundRect(outer.x, outer.y, outer.width, outer.height, BOARD_ARC, BOARD_ARC);
 
             int fontSize = Math.max(18, cell / 3);
@@ -516,15 +531,15 @@ public class PuzzleGameFrame extends JFrame {
                     int value = board.getTile(r, c);
                     if (value == 0) {
                         Rectangle rect = cellRect(r, c);
-                        g2.setColor(new Color(36, 46, 68));
-                        g2.fill(new RoundRectangle2D.Float(rect.x, rect.y, rect.width, rect.height, TILE_ARC, TILE_ARC));
+                        g2.setColor(EMPTY);
+                        g2.fill(rounded(rect));
                         continue;
                     }
                     if (sliding && r == slideToRow && c == slideToCol) {
                         continue;  // 动画中的块稍后在插值位置绘制
                     }
                     drawTile(g2, cellRect(r, c), value, value == r * size + c + 1,
-                            r * size + c == hintPos, metrics, ascent);
+                            r * size + c == hintPos, metrics, ascent, size);
                 }
             }
 
@@ -535,7 +550,7 @@ public class PuzzleGameFrame extends JFrame {
                 int x = (int) Math.round(from.x + (to.x - from.x) * t);
                 int y = (int) Math.round(from.y + (to.y - from.y) * t);
                 boolean correct = slideValue == slideToRow * size + slideToCol + 1;
-                drawTile(g2, new Rectangle(x, y, from.width, from.height), slideValue, correct, false, metrics, ascent);
+                drawTile(g2, new Rectangle(x, y, from.width, from.height), slideValue, correct, false, metrics, ascent, size);
             }
 
             if (won) {
@@ -545,35 +560,74 @@ public class PuzzleGameFrame extends JFrame {
         }
 
         private void drawTile(Graphics2D g2, Rectangle rect, int value, boolean correct, boolean hinted,
-                FontMetrics metrics, int ascent) {
-            g2.setColor(won ? SOLVED : TILE);
-            g2.fill(new RoundRectangle2D.Float(rect.x, rect.y, rect.width, rect.height, TILE_ARC, TILE_ARC));
+                FontMetrics metrics, int ascent, int size) {
+            g2.setColor(won ? WIN_TILE : tileColor(value, size));
+            g2.fill(rounded(rect));
             if (hinted) {
-                g2.setColor(HINT_TILE);
-            } else {
-                g2.setColor(correct && !won ? SOLVED : TILE_ACCENT);
+                g2.setColor(HINT_EDGE);
+                g2.draw(roundedEdge(rect));
+            } else if (correct && !won) {
+                g2.setColor(CORRECT_EDGE);
+                g2.draw(roundedEdge(rect));
             }
-            g2.draw(new RoundRectangle2D.Float(rect.x + 1, rect.y + 1, rect.width - 3, rect.height - 3, TILE_ARC, TILE_ARC));
-            g2.setColor(TEXT);
+            g2.setColor(won ? TEXT_DARK : tileText(value, size));
             String text = String.valueOf(value);
             int tw = metrics.stringWidth(text);
             g2.drawString(text, rect.x + (rect.width - tw) / 2, rect.y + (rect.height + ascent) / 2 - 4);
         }
 
+        /** 数字块底色：按数值在米色 → 暖沙 → 橙 → 橙红之间插值（2048 式色阶）。 */
+        private static Color tileColor(int value, int size) {
+            int max = size * size - 1;
+            float t = max > 1 ? (value - 1) / (float) (max - 1) : 0f;
+            if (t < 0.45f) {
+                return lerp(TILE_LOW, TILE_SAND, t / 0.45f);
+            }
+            if (t < 0.75f) {
+                return lerp(TILE_SAND, TILE_MID, (t - 0.45f) / 0.3f);
+            }
+            return lerp(TILE_MID, TILE_HIGH, (t - 0.75f) / 0.25f);
+        }
+
+        /** 数字文字颜色：深色块用白字，浅色块用深棕字。 */
+        private static Color tileText(int value, int size) {
+            int max = size * size - 1;
+            float t = max > 1 ? (value - 1) / (float) (max - 1) : 0f;
+            return t >= 0.55f ? TEXT_LIGHT : TEXT_DARK;
+        }
+
+        private static Color lerp(Color from, Color to, float t) {
+            t = Math.min(1f, Math.max(0f, t));
+            int r = Math.round(from.getRed() + (to.getRed() - from.getRed()) * t);
+            int g = Math.round(from.getGreen() + (to.getGreen() - from.getGreen()) * t);
+            int b = Math.round(from.getBlue() + (to.getBlue() - from.getBlue()) * t);
+            return new Color(r, g, b);
+        }
+
+        private static RoundRectangle2D.Float rounded(Rectangle rect) {
+            float arc = rect.width / 6f;
+            return new RoundRectangle2D.Float(rect.x, rect.y, rect.width, rect.height, arc, arc);
+        }
+
+        private static RoundRectangle2D.Float roundedEdge(Rectangle rect) {
+            float arc = rect.width / 6f;
+            return new RoundRectangle2D.Float(rect.x + 2, rect.y + 2, rect.width - 5, rect.height - 5, arc, arc);
+        }
+
         /** 通关后的半透明结算层，替代模态弹窗。 */
         private void paintOverlay(Graphics2D g2, Rectangle outer) {
-            g2.setColor(new Color(10, 16, 28, 200));
+            g2.setColor(OVERLAY);
             g2.fillRoundRect(outer.x, outer.y, outer.width, outer.height, BOARD_ARC, BOARD_ARC);
             int centerX = outer.x + outer.width / 2;
             int centerY = outer.y + outer.height / 2;
-            drawCentered(g2, "通关！", font(Font.BOLD, 30), TEXT, centerX, centerY - 52);
-            drawCentered(g2, "步数 " + moves + " · 用时 " + formatTime(elapsedSeconds), font(Font.BOLD, 17), TEXT, centerX, centerY - 8);
+            drawCentered(g2, "通关！", font(Font.BOLD, 30), TEXT_LIGHT, centerX, centerY - 52);
+            drawCentered(g2, "步数 " + moves + " · 用时 " + formatTime(elapsedSeconds), font(Font.BOLD, 17), TEXT_LIGHT, centerX, centerY - 8);
             if (newRecord) {
-                drawCentered(g2, "新纪录！", font(Font.BOLD, 15), SOLVED, centerX, centerY + 22);
+                drawCentered(g2, "新纪录！", font(Font.BOLD, 15), GOLD, centerX, centerY + 22);
             } else if (usedSolver) {
-                drawCentered(g2, "本局使用了求解器，不计入纪录", font(Font.PLAIN, 14), DIM, centerX, centerY + 22);
+                drawCentered(g2, "本局使用了求解器，不计入纪录", font(Font.PLAIN, 14), OVERLAY_DIM, centerX, centerY + 22);
             }
-            drawCentered(g2, "按 R 或点击棋盘再来一局", font(Font.PLAIN, 13), DIM, centerX, centerY + 56);
+            drawCentered(g2, "按 R 或点击棋盘再来一局", font(Font.PLAIN, 13), OVERLAY_DIM, centerX, centerY + 56);
         }
 
         private void drawCentered(Graphics2D g2, String text, Font textFont, Color color, int centerX, int y) {
