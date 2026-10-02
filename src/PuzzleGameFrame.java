@@ -370,7 +370,6 @@ public class PuzzleGameFrame extends JFrame {
         int toCol = board.getEmptyCol();
         if (board.moveTile(row, col)) {
             demoIndex++;
-            demoButton.setText("停止演示 " + demoIndex + "/" + solution.length);
             registerMove(row, col, toRow, toCol);
         } else {
             stopDemo();  // 局面与解意外脱同步，安全起见停止
